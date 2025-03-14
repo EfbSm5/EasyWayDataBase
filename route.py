@@ -4,18 +4,72 @@ from models.comment import Comment
 from models.user import User
 from models.easypoint import EasyPoint, EasyPointsSimplify
 from models.dynamicpost import DynamicPost
-from models.photo import Photo
 from models.file import File
 from create_app import db
+from models.apk import APK
 import os
 
 main = Blueprint('main', __name__)
-
 # 配置上传文件夹和文件大小限制
 UPLOAD_FOLDER = './uploads'
-ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif', 'txt', 'pdf'}  # 允许的文件类型
-MAX_CONTENT_LENGTH = 16 * 1024 * 1024  # 限制上传文件大小为 16MB
+ALLOWED_EXTENSIONS = {'.png', '.jpg', '.jpeg', '.gif', '.txt', '.pdf', '.apk' }  # 允许的文件类型
+MAX_CONTENT_LENGTH = 200 * 1024 * 1024  # 限制上传文件大小为 216MB
+APK_FILE="./app"
 
+@main.route('/upload', methods=['POST'])
+def upload_apk():
+    if 'file' not in request.files:
+        return jsonify({"error": "No file part"}), 400
+    file = request.files['file']
+    if file.filename == '':
+        return jsonify({"error": "No selected file"}), 400
+    
+    filename = secure_filename(file.filename)
+    file_path = os.path.join(current_app.config['UPLOAD_FOLDER'], filename)
+    os.makedirs(current_app.config['UPLOAD_FOLDER'], exist_ok=True)  # 确保目录存在
+    file.save(file_path)
+
+    apk_url = f"http://47.122.123.42:5000/download/{filename}"  # 替换为你的服务器地址
+
+    version_code = request.form.get('versionCode')
+    version_name = request.form.get('versionName')
+    update_message = request.form.get('updateMessage')
+
+    if not version_code or not version_name or not update_message:
+        return jsonify({"error": "Missing required fields"}), 400
+
+    new_apk = APK(
+        version_code=int(version_code),
+        version_name=version_name,
+        apk_url=apk_url,
+        update_message=update_message
+    )
+    db.session.add(new_apk)
+    db.session.commit()
+
+    return jsonify({"message": "File uploaded successfully", "apkUrl": apk_url}), 200
+
+@main.route('/checkUpdate', methods=['GET'])
+def check_update():
+    # 查询最新版本（按版本号降序排序）
+    latest_apk = APK.query.order_by(APK.version_code.desc()).first()
+    if latest_apk:
+        return jsonify({
+            "versionCode": latest_apk.version_code,
+            "versionName": latest_apk.version_name,
+            "apkUrl": latest_apk.apk_url,
+            "updateMessage": latest_apk.update_message
+        })
+    else:
+        return jsonify({"error": "No version found"}), 404
+    
+@main.route('/download/<filename>', methods=['GET'])
+def download_file(filename):
+    try:
+        return send_from_directory(current_app.config['UPLOAD_FOLDER'], filename, as_attachment=True)
+    except FileNotFoundError:
+        return jsonify({"error": "File not found"}), 404
+    
 # 确保上传文件夹存在
 if not os.path.exists(UPLOAD_FOLDER):
     os.makedirs(UPLOAD_FOLDER)
@@ -28,7 +82,7 @@ def allowed_file(filename):
 @main.route('/upload', methods=['POST'])
 def upload_image():
     if 'photo' not in request.files:
-        return jsonify({"error": "No photo part"}), 400
+        return jsonify({"error": "No photo part"}), 300
 
     file = request.files['photo']
     if file.filename == '':
@@ -46,7 +100,7 @@ def upload_image():
 
         return jsonify({"message": f"File {filename} uploaded successfully", "path": filepath}), 200
 
-    return jsonify({"error": "File type not allowed"}), 400
+    return jsonify({"error": "File type not allowed"}), 500
 
 # 提供图片访问
 @main.route('/uploads/photos/<filename>')

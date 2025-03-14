@@ -11,14 +11,13 @@ class EasyPoint(db.Model):
     location = db.Column(db.String(100), nullable=False)
     photo = db.Column(db.String(200), nullable=True)  # 存储图片文件名
     refresh_time = db.Column(db.String(50), nullable=False)
-    likes = db.Column(db.Integer, default=0)
-    dislikes = db.Column(db.Integer, default=0)
+    like= db.Column(db.Integer, default=0)
+    dislike = db.Column(db.Integer, default=0)
     lat = db.Column(db.Float, nullable=False)
     lng = db.Column(db.Float, nullable=False)
-    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    user_id = db.Column(db.Integer,nullable=False)
     comment_id = db.Column(db.Integer,  nullable=True)
 
-    user = db.relationship('User', backref='easypoints')
 
     def to_dict(self):
         return {
@@ -30,8 +29,8 @@ class EasyPoint(db.Model):
             "location": self.location,
             "photo": self.photo,
             "refresh_time": self.refresh_time,
-            "likes": self.likes,
-            "dislikes": self.dislikes,
+            "likes": self.like,
+            "dislikes": self.dislike,
             "lat": self.lat,
             "lng": self.lng,
             "comment_id": self.comment_id

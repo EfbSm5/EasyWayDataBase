@@ -6,13 +6,11 @@ class Comment(db.Model):
     __tablename__ = 'comments'
     index=db.Column(db.Integer, primary_key=True)
     comment_id = db.Column(db.Integer)
-    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    user_id = db.Column(db.Integer, nullable=False)
     content = db.Column(db.String(500), nullable=False)
     like = db.Column(db.Integer, default=0)
     dislike = db.Column(db.Integer, default=0)
     date = db.Column(db.String(50), nullable=False)
-
-    user = db.relationship('User', backref='comments')
 
     def to_dict(self):
         return {
